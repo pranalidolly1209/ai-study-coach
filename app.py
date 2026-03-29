@@ -25,7 +25,7 @@ init_db()
 
 # ---------------- CLEAN TEXT ----------------
 def clean_text(text):
-    for ch in ["*", "**", "•"]:
+    for ch in ["*", "**", "•","#","##","###"]:
         text = text.replace(ch, "")
     return text
 

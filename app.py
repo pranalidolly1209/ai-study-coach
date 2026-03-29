@@ -7,8 +7,10 @@ from reportlab.lib.styles import getSampleStyleSheet
 
 app = Flask(__name__)
 
-# Get Gemini API key from environment variables (safer for deployment)
-API_KEY = os.getenv("API_KEY")  # Set this in Render dashboard
+# ---------------- GEMINI API KEY ----------------
+API_KEY = os.getenv("API_KEY")  # Set this in environment, DO NOT hardcode
+if not API_KEY:
+    print("⚠️ WARNING: API_KEY not set! Gemini API calls will fail.")
 
 # ---------------- DATABASE ----------------
 def init_db():
@@ -27,22 +29,21 @@ def clean_text(text):
         text = text.replace(ch, "")
     return text
 
-# ---------------- GEMINI API CALL WITH FALLBACK ----------------
+# ---------------- GEMINI API CALL ----------------
 def call_gemini(prompt):
-    if API_KEY:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={API_KEY}"
-        data = {"contents":[{"parts":[{"text":prompt}]}]}
-        try:
-            res = requests.post(url, json=data, timeout=10)
-            result = res.json()
-            if "candidates" in result:
-                return clean_text(result['candidates'][0]['content']['parts'][0]['text'])
-            else:
-                print("API ERROR:", result)
-        except Exception as e:
-            print("API SERVER ERROR:", e)
-    # Fallback mock response if API fails or key missing
-    return f"[MOCK AI RESPONSE] Study plan for: {prompt}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={API_KEY}"
+    data = {"contents":[{"parts":[{"text":prompt}]}]}
+    try:
+        res = requests.post(url, json=data)
+        result = res.json()
+        if "candidates" not in result:
+            print("API ERROR:", result)
+            return "⚠️ AI error. Check API key/quota"
+        # Clean the text for frontend display
+        return clean_text(result['candidates'][0]['content']['parts'][0]['text'])
+    except Exception as e:
+        print("SERVER ERROR:", e)
+        return "⚠️ Server error occurred"
 
 # ---------------- FRONTEND ----------------
 @app.route('/')
